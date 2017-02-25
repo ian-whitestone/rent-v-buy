@@ -8,9 +8,12 @@ home_apprec = 0.02
 #####################
 #### RENT INPUTS ####
 #####################
-roi = 0.035
-rent_monthly = 1400    #1750 #$/month
-rent_inflation = 0.01
+roi = 0.04 ## what you can get elsewhere with your $$$ (after commission + capital gains tax)
+rent_monthly = 1750 # $/month
+
+# in Canada, this is the most they can raise rent without filing some official form
+# however, if you switch to a different unit you are likely to see a much higher increase
+rent_inflation = 0.025
 
 
 #######################
@@ -19,12 +22,12 @@ rent_inflation = 0.01
 
 ##MORTAGE DETAILS
 num_years = 30
-int_rate = 2.4 / 100 ##starting interest rate
-int_rate_incr = 0 #0.33 / 100 #0.33 / 100 ##yearly interest rate increase
+int_rate = 2.8 / 100 ##starting interest rate
+int_rate_incr = 0.25 / 100 #0.33 / 100 ##yearly interest rate increase
 
 
 ##HOUSE DETAILS
-list_price = 360000
+list_price = 400000
 down_payment = 60000
 
 tax = 2400 ##yearly tax
@@ -32,18 +35,19 @@ insurance = 200 ##yearly content insurance
 condo_fees = 400 ##monthly condo fees
 
 buy_cost = 3000 ##cost to purchase the home
-sell_cost = 0.04
+sell_cost = 0.05
 
 ##total monthly costs
 loan = list_price - down_payment
 mortgage_payment = (int_rate*loan/12)/(1-(1+int_rate/12)**(-1*num_years*12))
 home_monthly = mortgage_payment + condo_fees + (tax+insurance)/12
 
+##should technically only subtract RRSP savings over a 5 year period (or however long it would take to refill 25000)
 
-rent_equity = down_payment + buy_cost - rrsp_withdrawal*tax_rate ##should technically only subtract RRSP savings over a 5 year period (or however long it would take to refill 25000)
+rent_equity = down_payment + buy_cost - rrsp_withdrawal*tax_rate
 home_equity = down_payment
 
-print ('Monthly mortgage payment: {} Monthly interest amount (yr 1) {}'.format(home_monthly,loan*int_rate/12))
+print ('Monthly mortgage payment: {0:.2f} Monthly interest amount (yr 1) {0:.2f}'.format(home_monthly,loan*int_rate/12))
 
 print ('MONTH \t RENT EQUITY \t HOME EQUITY \t LOAN AMT')
 
@@ -82,4 +86,6 @@ for month in range(1,num_years*12+1):
 
 
 for sell_year in sell_years:
-    print ('After %s years \n Home NPV: $%0.2f \n Rent NPV: $%0.2f' % (sell_year,sell_dict[sell_year]['home_npv'],sell_dict[sell_year]['rent_npv']))
+    print ('After %s years \n Home NPV: $%0.2f \n Rent NPV: $%0.2f' %
+        (sell_year, sell_dict[sell_year]['home_npv'],
+        sell_dict[sell_year]['rent_npv']))
