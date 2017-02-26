@@ -1,19 +1,29 @@
+from pprint import pprint
+import matplotlib.pyplot as plt
+import numpy as np
+from collections import OrderedDict
+
+###################################################################
+############################ CONSTANTS ############################
+###################################################################
+
+
 #################
 #### GENERAL ####
 #################
-tax_rate = 0.3
-rrsp_withdrawal = 25000
-home_apprec = 0.02
+TAX_RATE = 0.3
+RRSP_WITHDRAWAL = 0 #25000
+HOME_APPREC = 0.03
 
 #####################
 #### RENT INPUTS ####
 #####################
-roi = 0.04 ## what you can get elsewhere with your $$$ (after commission + capital gains tax)
-rent_monthly = 1750 # $/month
+ROI = 0.04 ## what you can get elsewhere with your $$$ (after commission + capital gains tax)
+RENT = 1750 # $/month
 
 # in Canada, this is the most they can raise rent without filing some official form
 # however, if you switch to a different unit you are likely to see a much higher increase
-rent_inflation = 0.025
+RENT_INFLATION = 0.025
 
 
 #######################
@@ -21,71 +31,110 @@ rent_inflation = 0.025
 #######################
 
 ##MORTAGE DETAILS
-num_years = 30
-int_rate = 2.8 / 100 ##starting interest rate
-int_rate_incr = 0.25 / 100 #0.33 / 100 ##yearly interest rate increase
+MORTGAGE_LEN = 30
+INT_RATE = 2.8 / 100 ##starting interest rate
+INT_RATE_INCR = 0 #0.25 / 100 ## yearly interest rate increase
 
+##SELL YEAR
+SELL_YEAR = 5
 
 ##HOUSE DETAILS
-list_price = 400000
-down_payment = 60000
+LIST_PRICE = 450000
+DOWN_PAYMENT = 0.3 ##percent
 
-tax = 2400 ##yearly tax
-insurance = 200 ##yearly content insurance
-condo_fees = 400 ##monthly condo fees
+TAX = 2400 ##yearly tax
+INSURANCE = 200 ##yearly content insurance
+CONDO_FEES = 450 ##monthly condo fees
 
-buy_cost = 3000 ##cost to purchase the home
-sell_cost = 0.05
+BUY_FEE = 3000 ##cost to purchase the home --> includes condo doc review
+SELL_FEE_RATE = 0.05
+SELL_FEE = 3000 ##need to research this
 
-##total monthly costs
-loan = list_price - down_payment
-mortgage_payment = (int_rate*loan/12)/(1-(1+int_rate/12)**(-1*num_years*12))
-home_monthly = mortgage_payment + condo_fees + (tax+insurance)/12
+######################################################################
+############################ CALCULATIONS ############################
+######################################################################
+## enter the ranges you want to test for each variable
+## order them as: [lowest, highest, base_case]
+## base case must equal the value you set above
 
-##should technically only subtract RRSP savings over a 5 year period (or however long it would take to refill 25000)
+stress_test = {
+    'RENT': [1500, 2000, 1750],
+    'ROI': [0.03, 0.05, 0.04],
+    'LIST_PRICE': [400000, 500000, 450000],
+    'CONDO_FEES': [350, 550, 450],
+    'DOWN_PAYMENT': [0.2, 0.4, 0.3],
+    'HOME_APPREC': [0.01, 0.05, 0.03],
+    'INT_RATE': [0.020, 0.045, 0.028],
+    'SELL_YEAR': [3, 10, 5]
+}
 
-rent_equity = down_payment + buy_cost - rrsp_withdrawal*tax_rate
-home_equity = down_payment
+npv = {}
+stress_levels = [-1, 1, 0]
 
-print ('Monthly mortgage payment: {0:.2f} Monthly interest amount (yr 1) {0:.2f}'.format(home_monthly,loan*int_rate/12))
+for var, values in stress_test.items():
+    npv[var] = {}
+    for value, x in zip(values, stress_levels):
+        exec('%s = %s' % (var, value)) ## set the variable equal to it's new value
 
-print ('MONTH \t RENT EQUITY \t HOME EQUITY \t LOAN AMT')
+        ##total monthly costs
+        loan = LIST_PRICE - DOWN_PAYMENT*LIST_PRICE
+        mortgage_payment = (INT_RATE*loan/12)/(1-(1+INT_RATE/12)**(-1*MORTGAGE_LEN*12))
+        home_monthly = mortgage_payment + CONDO_FEES + (TAX+INSURANCE)/12
 
-sell_years = [5,10,15,20]
-
-home_price = list_price
-sell_dict = {}
-for month in range(1,num_years*12+1):
-    int_amount = loan * int_rate / 12
-    equity_amount = mortgage_payment - int_amount
-    loan -= equity_amount
-
-    monthly_home_apprec = home_price*home_apprec/12
-    home_price += monthly_home_apprec
-
-    rent_equity += rent_equity*roi/12 + home_monthly - rent_monthly*(1+rent_inflation/12)
-    home_equity += equity_amount + monthly_home_apprec
-
-    int_rate += int_rate_incr/12
-
-    sre = '$' + str(round(rent_equity,0))
-    she = '$' + str(round(home_equity,0))
-    # print ('%s \t %s \t %s \t %s' % (month,sre,she,'$'+str(round(loan,0))))
-
-    ##recalculate mortgage_payment at new interest rate
-    if month<360:
-        mortgage_payment = (int_rate*loan/12)/(1-(1+int_rate/12)**(-1*(num_years-month/12)*12))
-        home_monthly = mortgage_payment + condo_fees + (tax+insurance)/12
-
-    if month in [x*12 for x in sell_years]:
-        print ('home price after %s years is: %s' % (month/12,round(home_price,0)))
-        temp_home_equity = home_price - loan - sell_cost*home_price
-        sell_dict[month/12]={}
-        sell_dict[month/12]['home_npv'] = (temp_home_equity-rent_equity)/((1+roi)**month/12)
-        sell_dict[month/12]['rent_npv'] = (rent_equity-temp_home_equity)/((1+roi)**month/12)
+        ##should technically only subtract RRSP savings over a 5 year period (or however long it would take to refill 25000)
+        rent_equity = DOWN_PAYMENT*LIST_PRICE + BUY_FEE - RRSP_WITHDRAWAL*TAX_RATE
+        home_equity = DOWN_PAYMENT
 
 
-for sell_year in sell_years:
-    print ('After %s years \n Home NPV: $%0.2f \n Rent NPV: $%0.2f' %
-        (sell_year, sell_dict[sell_year]['home_npv'],
-        sell_dict[sell_year]['rent_npv']))
+        home_price = LIST_PRICE
+
+
+        for month in range(1,MORTGAGE_LEN*12+1):
+            int_amount = loan * INT_RATE / 12
+            equity_amount = mortgage_payment - int_amount
+            loan -= equity_amount
+
+            monthly_home_apprec = home_price*HOME_APPREC/12
+            home_price += monthly_home_apprec
+
+            rent_equity += rent_equity*ROI/12 + home_monthly - RENT*(1+RENT_INFLATION/12)
+            home_equity += equity_amount + monthly_home_apprec
+
+            INT_RATE += INT_RATE_INCR/12
+
+            ##recalculate mortgage_payment at new interest rate
+            if month<360:
+                mortgage_payment = (INT_RATE*loan/12)/(1-(1+INT_RATE/12)**(-1*(MORTGAGE_LEN-month/12)*12))
+                home_monthly = mortgage_payment + CONDO_FEES + (TAX+INSURANCE)/12
+
+            if month == SELL_YEAR*12:
+                temp_home_equity = home_price - loan - SELL_FEE_RATE*home_price - SELL_FEE
+                npv[var][x] = round((temp_home_equity-rent_equity)/((1+ROI)**month/12),0)
+
+pprint(npv)
+
+legend = []
+stepsize = 5000
+# b g r c m k
+colours = ['bo', 'go', 'ro', 'co', 'mo', 'ko', 'b^', 'g^']
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+
+i = 0
+for var, values in npv.items():
+    x = [-1, 0, 1]
+    y = [values[i] for i in x]
+    legend.append(var)
+    ax.plot(x, y, colours[i]) ## scatter plot
+    # ax.plot(x, y) ## line plot
+    i += 1
+
+ax.set_xlim(xmin=-1.5, xmax=1.5)
+ax.legend(legend, loc='upper left')
+
+start, end = ax.get_ylim()
+ax.yaxis.set_ticks(np.arange(start, end, stepsize))
+
+
+plt.show()
