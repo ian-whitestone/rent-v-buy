@@ -57,15 +57,16 @@ SELL_FEE = 3000 ##need to research this
 ## order them as: [lowest, highest, base_case]
 ## base case must equal the value you set above
 
+## TODO: change this to % factors
 stress_test = {
-    'RENT': [1500, 2000, 1750],
-    'ROI': [0.03, 0.05, 0.04],
-    'LIST_PRICE': [400000, 500000, 450000],
-    'CONDO_FEES': [350, 550, 450],
-    'DOWN_PAYMENT': [0.2, 0.4, 0.3],
-    'HOME_APPREC': [0.01, 0.05, 0.03],
-    'INT_RATE': [0.020, 0.045, 0.028],
-    'SELL_YEAR': [3, 10, 5]
+    'RENT': [1500, 2000, RENT],
+    'ROI': [0.03, 0.05, ROI],
+    'LIST_PRICE': [400000, 500000, LIST_PRICE],
+    'CONDO_FEES': [350, 550, CONDO_FEES],
+    'DOWN_PAYMENT': [0.2, 0.4, DOWN_PAYMENT],
+    'HOME_APPREC': [0.01, 0.05, HOME_APPREC],
+    'INT_RATE': [0.020, 0.045, INT_RATE],
+    'SELL_YEAR': [3, 10, SELL_YEAR]
 }
 
 npv = {}
@@ -85,9 +86,7 @@ for var, values in stress_test.items():
         rent_equity = DOWN_PAYMENT*LIST_PRICE + BUY_FEE - RRSP_WITHDRAWAL*TAX_RATE
         home_equity = DOWN_PAYMENT
 
-
         home_price = LIST_PRICE
-
 
         for month in range(1,MORTGAGE_LEN*12+1):
             int_amount = loan * INT_RATE / 12
@@ -102,7 +101,8 @@ for var, values in stress_test.items():
 
             INT_RATE += INT_RATE_INCR/12
 
-            ##recalculate mortgage_payment at new interest rate
+            ## recalculate mortgage_payment at new interest rate
+            ## if INT_RATE_INCR = 0 it won't change
             if month<360:
                 mortgage_payment = (INT_RATE*loan/12)/(1-(1+INT_RATE/12)**(-1*(MORTGAGE_LEN-month/12)*12))
                 home_monthly = mortgage_payment + CONDO_FEES + (TAX+INSURANCE)/12
@@ -114,7 +114,6 @@ for var, values in stress_test.items():
 pprint(npv)
 
 legend = []
-stepsize = 5000
 # b g r c m k
 colours = ['bo', 'go', 'ro', 'co', 'mo', 'ko', 'b^', 'g^']
 
@@ -133,6 +132,7 @@ for var, values in npv.items():
 ax.set_xlim(xmin=-1.5, xmax=1.5)
 ax.legend(legend, loc='upper left')
 
+stepsize = 5000
 start, end = ax.get_ylim()
 ax.yaxis.set_ticks(np.arange(start, end, stepsize))
 
